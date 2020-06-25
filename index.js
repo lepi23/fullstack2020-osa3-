@@ -96,13 +96,30 @@ app.post('/api/persons', (req, res) => {
   })
 })
 //henkilön numeron muutos
+/*
 app.put('/api/persons/:id', (req, res, next) => {
   Person.findByIdAndUpdate(req.params.id,{name : req.body.name, number: req.body.number})
     .then(result => {
       res.status(204).end()
     })
     .catch(error => next(error))
+})*/
+app.put('/api/persons/:id', (req, res, next) => {
+  const body = req.body
+
+  const person = {
+    name: body.name,
+    number: body.number,
+    id :body.id,
+  }
+
+  Person.findByIdAndUpdate(req.params.id, person, { number: body.number })
+    .then(updatedPerson => {
+      res.json(updatedPerson)
+    })
+    .catch(error => next(error))
 })
+
 //virheellisten pyyntöjen käsittely
 const errorHandler = (error, req, res, next) => {
   console.error(error.message)
