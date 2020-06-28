@@ -16,34 +16,27 @@ app.use(morgan(':method :url :status :res[content-length] - :response-time ms :t
 //info sivu
 app.get('/info', (req, res) => {
   res.send(
-    `<p>PhoneBook has info for ${Person.countDocuments({})} people</p>
+    `<p>PhoneBook has info for ${calculatePersons()} people</p>
     <p>${new Date()}</p>`)
 })
+
 //kaikkien henkilöiden datan hakeminen tietokannasta
 app.get('/api/persons', (req, res) => {
   Person.find({}).then(persons => {
+    numberOfPeople = persons.length
     res.json(persons)
   })
 })
-/*
-app.get('/api/persons', (req, res) => {
-res.json(persons)
-})
-*/
-/*
-app.get('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id)
-  const person = persons.find(person => person.id === id)
-  if (person)
-  {
-    res.json(person)
-  }
-  else
-  {
-    res.status(404).end()
-  }
-  
-})*/
+//henkilöiden määrän laskeminen(ei toimi jostain syystä)
+const calculatePersons = () => {
+  app.get('/api/persons', (req, res) => {
+    Person.find({}).then(persons => {
+      console.log(persons.length)
+      return persons.length
+    })
+  })
+}
+//yksittäisen henkilön haku
 app.get('/api/persons/:id', (req, res, next) => {
   Person.findById(req.params.id)
   .then(person => {
@@ -57,13 +50,7 @@ app.get('/api/persons/:id', (req, res, next) => {
   .catch(error => next(error))
 })
 //yksittäisen henkilön poisto listalta
-/*
-app.delete('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id)
-  persons = persons.filter(person => person.id !== id)
 
-  res.status(204).end()
-})*/
 app.delete('/api/persons/:id', (req, res, next) => {
   Person.findByIdAndRemove(req.params.id)
     .then(result => {
@@ -73,7 +60,7 @@ app.delete('/api/persons/:id', (req, res, next) => {
 })
 
 //henkilön lisäys
-app.post('/api/persons', (req, res) => {
+app.post('/api/persons', (req, res, next) => {
   const body = req.body
 
   if (!body.name) {
@@ -91,19 +78,13 @@ app.post('/api/persons', (req, res) => {
     number : body.number,
     id : Math.floor(Math.random() * Math.floor(5000))  
   })
-  person.save().then(savedPerson => {
-    res.json(savedPerson)
+  person.save()
+    .then(savedPerson => {
+      res.json(savedPerson)
   })
+  .catch(error => next(error))
 })
-//henkilön numeron muutos
-/*
-app.put('/api/persons/:id', (req, res, next) => {
-  Person.findByIdAndUpdate(req.params.id,{name : req.body.name, number: req.body.number})
-    .then(result => {
-      res.status(204).end()
-    })
-    .catch(error => next(error))
-})*/
+//henkilön numeron vaihtaminen
 app.put('/api/persons/:id', (req, res, next) => {
   const body = req.body
 
@@ -127,7 +108,9 @@ const errorHandler = (error, req, res, next) => {
   if (error.name === 'CastError') {
     return res.status(400).send({ error: 'malformatted id' })
   }
-
+  else if (error.name === 'ValidationError') {
+    return res.status(400).json({ error: error.message })
+  }
   next(error)
 }
 
